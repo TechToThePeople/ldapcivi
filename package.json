@@ -1,0 +1,25 @@
+{
+  "name": "ldapcivi",
+  "version": "1.1.2",
+  "description": "Tech To The People",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js default"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:TechToThePeople/ldapcivi.git"
+  },
+  "dependencies": {
+    "civicrm": "latest",
+    "underscore": "latest",
+    "ldapjs": "latest"
+  },
+  "devDependencies": {
+    "chai": "*",
+    "mocha": "*"
+  },
+  "engines": {
+    "node": "0.8.x"
+  }
+}
