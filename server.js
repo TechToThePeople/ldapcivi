@@ -1,13 +1,44 @@
 var ldap = require('ldapjs');
 var _ = require('underscore');
 if (process.argv.length >= 3) {
-  var settings = _.extend(require('./config/default.js'),require('./config/'+process.argv[2]+'.js'));
+console.log ("Using config file config/"+process.argv[2]+'.js');
+  //var settings = _.defaults(require('./config/'+process.argv[2]+'.js'),require('./config/default.js'));
+  var settings = {};
+  _.defaults(settings,require('./config/default.js'),require('./config/'+process.argv[2]+'.js'));
+  _.extend(settings.civicrm,require('./config/default.js').civicrm,require('./config/'+process.argv[2]+'.js').civicrm);
+  _.extend(settings.ldap,require('./config/default.js').ldap,
+     require('./config/'+process.argv[2]+'.js').ldap);
 } else {
+  console.log ("No setting param given. Using default configuration");
   var settings = require('./config/default.js');
 }
 
 var crmAPI = require('civicrm')(settings.civicrm);
 var server = ldap.createServer();
+
+//server.use(function(req, res, next) { console.log(req); return next(); });
+//ldap.log4js.setLevel('Trace');
+
+server.bind('dc=*', function(req, res, next) {
+  console.log ("bind *"+req.dn.toString()+":"+req.credentials);
+  res.end();
+  return next();
+});
+
+server.bind('dc=com', function(req, res, next) {
+  console.log ("dc=com bind "+req.dn.toString()+":"+req.credentials);
+  res.end();
+  return next();
+});
+
+
+server.bind('cn=root', function(req, res, next) {
+  console.log ("bind "+req.dn.toString()+":"+req.credentials);
+  res.end();
+  return next();
+});
+
+console.log (settings.ldap);
 
 server.bind(settings.ldap.basedn, function (req, res, next) {
   var username = req.dn.toString(),
@@ -22,13 +53,26 @@ server.bind(settings.ldap.basedn, function (req, res, next) {
   return next();
 });
 
-server.search(settings.ldap.basedn, function(req, res, next) {
+server.search("a=b", function(req, res, next) {
+//console.log(req.baseObject);
+console.log("search "+req.dn.toString());
+console.log(req.connection.ldap.bindDN);
+  res.end();
+  return next();
+});
+
+server.search(settings.ldap.SUFFIX, function(req, res, next) {
   var dummy = { dn: req.dn.toString(),  attributes: {  objectclass: ['inetOrgPerson', 'top'], o: 'example', sn:'last name', cn:'first last'}};
   var noimpl = { dn: req.dn.toString(),  attributes: {  objectclass: ['inetOrgPerson', 'top'], o: 'Tech To The People', mail:'sponsor.ldap@tttp.eu', cn:'Not Implemented'}};
 
   function civicrm_contact_search (name,result) {
-    crmAPI.get ('contact',{sort_name:name,contact_type:'Individual',return:'display_name,email,phone'},
+    console.log ("searching "+ name);
+    crmAPI.call ('contact',settings.civicrm.action,{sort_name:name,contact_type:'Individual',return:'display_name,email'},
       function (data) {
+        console.log(data);
+        if (data.is_error) {
+          result (1,data);
+        }
         result (data.is_error,data.values);
     });
   }
@@ -81,8 +125,12 @@ server.search(settings.ldap.basedn, function(req, res, next) {
     address = address[1];
   else 
     address = req.filter.toString().match(/\(\w.?=(.*?)\)/)[1];
+  if ( "*" == address[0])
+    address=address.substring(1);
   console.log (req.filter.toString() +"-> searching "+query.type+ " for "  + address); 
   civicrm_contact_search (address,function (error,contacts) {
+console.log(error);
+console.log(contacts);
     for (var i = 0; i < contacts.length; i++) {
        console.log ({'dn': req.dn.toString(), 'attributes':formatContact(contacts[i])});
        res.send(formatContact(contacts[i]));
