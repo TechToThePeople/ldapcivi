@@ -45,9 +45,19 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
   var dummy = { dn: req.dn.toString(),  attributes: {  objectclass: ['inetOrgPerson', 'top'], o: 'example', sn:'last name', cn:'first last'}};
   var noimpl = { dn: req.dn.toString(),  attributes: {  objectclass: ['inetOrgPerson', 'top'], o: 'Tech To The People', mail:'sponsor.ldap@tttp.eu', cn:'Not Implemented'}};
 
+  var params = {
+    contact_type:'Individual',
+    "return":'display_name,sort_name,email,title,organization_name,job_title',
+    "option.limit" : req.sizeLimit,
+  };
+
+  console.log ("searching "+req.sizeLimit);
+  console.log(req.attributes);
+
   function civicrm_contact_search (name,result) {
     console.log ("searching "+ name);
-    crmAPI.call ('contact',settings.civicrm.action,{sort_name:name,contact_type:'Individual',return:'display_name,email'},
+    params.sort_name = name;
+    crmAPI.call ('contact',settings.civicrm.action,params,
       function (data) {
         console.log(data);
         if (data.is_error) {
@@ -79,9 +89,11 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
       'givenname':'first_name',
       'mail':'email',
       'sn':'last_name',
+      'title':'job_title',
       'o':'organization_name',
+      'displayName':'display_name',
     }
-    var r= {'objectClass':["top","inetOrgPerson"],'cn':contact.sort_name};
+    var r= {'objectClass':["top","inetOrgPerson","person"],'cn':contact.sort_name,'homeurl':settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id};
     for (v in map){
       if (typeof contact[map[v]] != "undefined") {
         r[v] = contact[map[v]];
@@ -93,6 +105,7 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
   var dn = req.dn.toString();
   query= req.filter.json;
   console.log( "query DN = " + dn + ' '+ req.scope + ' / ' + query.type);
+
   if (req.scope == "PresenceMatch") {
     //do something
   console.log (req.filter.toString() +"-> presencematch "+query.type+ " for "  + address); 
@@ -116,8 +129,6 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
     address=address.substring(1);
   console.log (req.filter.toString() +"-> searching "+query.type+ " for "  + address); 
   civicrm_contact_search (address,function (error,contacts) {
-console.log(error);
-console.log(contacts);
     for (var i = 0; i < contacts.length; i++) {
        console.log ({'dn': req.dn.toString(), 'attributes':formatContact(contacts[i])});
        res.send(formatContact(contacts[i]));
