@@ -113,6 +113,13 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
   var dn = req.dn.toString();
   query= req.filter.json;
   console.log( "query DN = " + dn + ' '+ req.scope + ' / ' + query.type);
+  if (req.scope == "PresenceMatch") {
+    //do something
+  console.log (req.filter.toString() +"-> presencematch "+query.type+ " for "  + address); 
+    res.end();
+
+  }
+
   if (req.scope != 'sub') {
     console.log('NOT implemented '+req.scope + ' ' + query.type)
     res.send(noimpl);
