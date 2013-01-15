@@ -19,36 +19,16 @@ var server = ldap.createServer();
 //server.use(function(req, res, next) { console.log(req); return next(); });
 //ldap.log4js.setLevel('Trace');
 
-server.bind('dc=*', function(req, res, next) {
-  console.log ("bind *"+req.dn.toString()+":"+req.credentials);
-  res.end();
-  return next();
-});
-
-server.bind('dc=com', function(req, res, next) {
-  console.log ("dc=com bind "+req.dn.toString()+":"+req.credentials);
-  res.end();
-  return next();
-});
-
-
-server.bind('cn=root', function(req, res, next) {
-  console.log ("bind "+req.dn.toString()+":"+req.credentials);
-  res.end();
-  return next();
-});
-
 console.log (settings.ldap);
 
 server.bind(settings.ldap.basedn, function (req, res, next) {
   var username = req.dn.toString(),
   password = req.credentials;
   console.log ("bind "+username+":"+password);
-    /*    if (!userinfo.hasOwnProperty(username) ||
-          userinfo[username].pwd != password) {
-          return next(new ldap.InvalidCredentialsError());
-          }
-          */
+  if ( password != settings.ldap.password  ) {
+    console.log ("invalid password");
+    return next(new ldap.InvalidCredentialsError());
+  }
   res.end();
   return next();
 });
