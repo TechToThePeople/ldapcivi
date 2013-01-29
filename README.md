@@ -5,10 +5,10 @@ Allows you to search your civicrm install directly from your mail client (thunde
 
 Install
 -------
-git clone this repository
-copy config/default.js into config/yoursite.js
-
-edit config/yoursite.js with your setting
+$git clone https://github.com/TechToThePeople/ldapcivi.git
+$npm install
+$cp config/default.js config/yoursite.js
+$edit config/yoursite.js //put the config you like
 
 Run
 ---
@@ -29,3 +29,13 @@ Use from Outlook
 -----------------
 Same as thunderbird, but the login has to be 
 cn=nicolas, dc=example, dc=org (or whatever your bind DN)
+
+Limitations/TODO/Make It Happen
+---------------
+- There is one and only one civicrm backend by ldap server
+- There is one and only one civicrm user
+- There is one and only one ldap user (same login/pwd for everyone)
+
+But instead of limitations, I'd suggest you to see them as opportunities to contribute to the code, or to sponsor them (seriously, probably not that complex)
+
+
