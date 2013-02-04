@@ -90,7 +90,15 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
       'mail':'email',
       'sn':'last_name',
       'title':'job_title',
+      'co':'country',
+      'l':'city',
+      'st':'state_province',
+      'homepostaladdress':'street_address',
+      'postaladdress':'street_address',
+      'postalcode':'postal_code',
+      'telephonenumber':'phone',
       'o':'organization_name',
+      'company':'current_employer',
       'displayName':'display_name',
     }
     var r= {'objectClass':["top","inetOrgPerson","person"],'cn':contact.sort_name,'homeurl':settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id};
@@ -99,6 +107,13 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
         r[v] = contact[map[v]];
       }
     }
+    if (typeof contact["supplemental_address_1"] != "undefined") {
+      r['postaladdress']=r['postaladdress']+"\r\n"+contact["supplemental_address_1"];
+    }
+    if (typeof contact["supplemental_address_2"] != "undefined") {
+      r['postaladdress']=r['postaladdress']+"\r\n"+contact["supplemental_address_2"];
+    }
+    r['info']="Contact civicrm <br>\r\n"+settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id; 
     return {'dn':'cn=civi_'+contact.id+', '+settings.ldap.basedn,'attributes':r};
   }
 
@@ -106,10 +121,21 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
   query= req.filter.json;
   console.log( "query DN = " + dn + ' '+ req.scope + ' / ' + query.type);
 
-  if (req.scope == "PresenceMatch") {
+  if (query.type == "PresenceMatch") {
     //do something
-  console.log (req.filter.toString() +"-> presencematch "+query.type+ " for "  + address); 
-    res.end();
+    var cid=req.dn.rdns[0].cn.substring(5);
+    crmAPI.call ('contact','get',{id:cid,"option.limit":1,return:"first_name,last_name,email,current_employer,prefix_id,gender_id,street_address,supplemental_address_1,supplemental_address_2,city,postal_code,state_province,country,phone,job_title"},
+      function (data) {
+        console.log(data);
+        if (data.is_error) {
+          res.end();
+          return;
+        }
+         res.send(formatContact(data.values[0]));
+         res.end();
+    });
+  console.log (req.dn.rdns[0].cn.substring(5) +"-> presencematch "+query.type+ " for "  + address); 
+    return;
 
   }
 
