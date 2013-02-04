@@ -6,8 +6,11 @@ Allows you to search your civicrm install directly from your mail client (thunde
 Install
 -------
 $git clone https://github.com/TechToThePeople/ldapcivi.git
+
 $npm install
+
 $cp config/default.js config/yoursite.js
+
 $edit config/yoursite.js //put the config you like
 
 Run
