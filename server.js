@@ -33,12 +33,13 @@ server.bind(settings.ldap.basedn, function (req, res, next) {
   return next();
 });
 
-server.search("a=b", function(req, res, next) {
-//console.log(req.baseObject);
-console.log("search "+req.dn.toString());
-console.log(req.connection.ldap.bindDN);
+//http://ldapjs.org/server.html authorize()
+server.search("", function(req, res, next) { 
+  console.log(req.connection.ldap.bindDN.toString());
+//  if (!req.connection.ldap.bindDN.equals('cn=root'))
+//    return next(new ldap.InsufficientAccessRightsError());
+  return next(new ldap.OperationsError()); 
   res.end();
-  return next();
 });
 
 server.search(settings.ldap.SUFFIX, function(req, res, next) {
@@ -59,7 +60,6 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
     params.sort_name = name;
     crmAPI.call ('contact',settings.civicrm.action,params,
       function (data) {
-        console.log(data);
         if (data.is_error) {
           result (1,data);
         }
@@ -108,12 +108,12 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
       }
     }
     if (typeof contact["supplemental_address_1"] != "undefined") {
-      r['postaladdress']=r['postaladdress']+"\r\n"+contact["supplemental_address_1"];
+      r['postaladdress']=r['postaladdress']+"\\n"+contact["supplemental_address_1"];
     }
     if (typeof contact["supplemental_address_2"] != "undefined") {
-      r['postaladdress']=r['postaladdress']+"\r\n"+contact["supplemental_address_2"];
+      r['postaladdress']=r['postaladdress']+"\\n"+contact["supplemental_address_2"];
     }
-    r['info']="Contact civicrm <br>\r\n"+settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id; 
+    r['info']="Contact civicrm\\n"+settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id; 
     return {'dn':'cn=civi_'+contact.id+', '+settings.ldap.basedn,'attributes':r};
   }
 
@@ -126,17 +126,14 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
     var cid=req.dn.rdns[0].cn.substring(5);
     crmAPI.call ('contact','get',{id:cid,"option.limit":1,return:"first_name,last_name,email,current_employer,prefix_id,gender_id,street_address,supplemental_address_1,supplemental_address_2,city,postal_code,state_province,country,phone,job_title"},
       function (data) {
-        console.log(data);
         if (data.is_error) {
           res.end();
-          return;
+          return next();
         }
          res.send(formatContact(data.values[0]));
          res.end();
     });
-  console.log (req.dn.rdns[0].cn.substring(5) +"-> presencematch "+query.type+ " for "  + address); 
-    return;
-
+    return next();
   }
 
   if (req.scope != 'sub') {
