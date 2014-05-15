@@ -144,22 +144,48 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
   }
 
   var address = req.filter.toString().match(/\(\w.?=(.*?)\*\)/);
-  if (address.length >1)
+
+  if (! address) {
+    console.log('Invalid query format. Make sure it has no spaces and correct use of parenthesis. It should match: /\(\w.?=(.*?)\*\)/');
+    return next(new ldap.NoSuchAttributeError('invalid query format'));
+  }
+
+  if (address.length > 1) {
     address = address[1];
-  else 
+  }
+  else {
     address = req.filter.toString().match(/\(\w.?=(.*?)\)/)[1];
-  if ( "*" == address[0])
+  }
+
+  if ("*" == address[0]) {
     address=address.substring(1);
+  }
+
   console.log (req.filter.toString() +"-> searching "+query.type+ " for "  + address); 
+
   civicrm_contact_search (address,function (error,contacts) {
+    if (error) {
+      // The most typical error is an authentication fail (API key authentication)
+      if (contacts) {
+        console.log('civicrm_contact_search failed: ' + contacts.error_message);
+        return next(new ldap.InvalidCredentialsError(contacts.error_message));
+      }
+      else {
+        // Not sure why, but when there are errors, we often end up here twice,
+        // and the second time does not have the actual error provided.
+        console.log('civicrm_contact_search failed: ' + 'unknown error');
+        return next(new ldap.InvalidCredentialsError('unknown error'));
+      }
+    }
+
     for (var i = 0; i < contacts.length; i++) {
        console.log ({'dn': req.dn.toString(), 'attributes':formatContact(contacts[i])});
        res.send(formatContact(contacts[i]));
     }
+
     res.end();
     return next();
   });
-
 });
 
 server.listen(settings.ldap.port, function() {
