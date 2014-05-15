@@ -178,8 +178,6 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
       }
     }
 
-    console.log(contacts);
-
     for (var i = 0; i < contacts.length; i++) {
        console.log ({'dn': req.dn.toString(), 'attributes':formatContact(contacts[i])});
        res.send(formatContact(contacts[i]));
