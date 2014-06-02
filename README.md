@@ -98,6 +98,53 @@ In Preferences -> Accounts, create a new LDAP Server with details along the line
 * Password - As set in the config file on your node.js server
 
 
+Using ldaps (SSL)
+-----------------
+
+By default, the communication between your LDAP client and this server is
+not encrypted (similar to http). The 'https' equivalent for LDAP is 'ldaps'.
+
+To enable, you must have an SSL key and certificate bundle. This is in the
+same format as for most web servers (Apache or Nginx). If your CiviCRM instance
+already has https, you can re-use its key and certificate.
+
+You can then add the equivalent configuration to your settings in yoursite.js:
+
+    const fs = require("fs");
+    var privateKey = fs.readFileSync('/path/to/www.example.org.key').toString();
+    var certificate = fs.readFileSync('/path/to/www.example.org.bundled.crt').toString();
+
+    var settings = {}
+    [...]
+    settings.ldap.certificate = certificate,
+    settings.ldap.key = privateKey,
+
+In the above example,
+
+* "www.example.org" is the site running CiviCRM,
+* "/path/to/www.example.org.key" is the file with the SSL private key,
+* "/path/to/www.example.org.bundled.crt" is the file with the SSL certificate
+  and bundle concatenated together (in that order), as is done usually with nginx.
+
+Some SSL providers refer to the "bundle" as the "chaining certificate".
+Apache refers to it as the "SSLCACertificateFile". It is not required, but
+most "less expensive" ssl providers require it.
+
+IMPORTANT: keep your SSL private key private! Make sure that other users on your
+system cannot read it.
+
+After restarting the ldapcivi server, it should print on the console:
+
+    LDAP server listening at ldaps://0.0.0.0:1389
+
+Note that, by convention, ldaps uses port 636. If you are running ldapcivi as a
+non-priviledged user (non-root), you can use 1636, it may be easier to remember
+when configuring LDAP clients, since they will automatically default to 636.
+
+As implied above, you will also need to make sure that all LDAP clients support
+SSL. If would be highly unusual if your client does not.
+
+
 Limitations/TODO/Make It Happen
 -------
 - There is one and only one civicrm backend by ldap server
