@@ -13,13 +13,16 @@ console.log ("Using config file config/"+process.argv[2]+'.js');
   var settings = require('./config/default.js');
 }
 
+// NB: passing settings.ldap makes it possible to enable ldaps.
+var server = ldap.createServer(settings.ldap);
 var crmAPI = require('civicrm')(settings.civicrm);
-var server = ldap.createServer();
 
 //server.use(function(req, res, next) { console.log(req); return next(); });
 //ldap.log4js.setLevel('Trace');
 
-console.log (settings.ldap);
+// Uncomment this if you want to settings on the console.
+// NB: if you are using SSL, the private key will be printed on the console.
+// console.log (settings.ldap);
 
 server.bind(settings.ldap.basedn, function (req, res, next) {
   var username = req.dn.toString(),
