@@ -103,7 +103,18 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
       'company':'current_employer',
       'displayName':'display_name',
     }
-    var contactUrl = settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id;
+
+    var contactUrl = settings.civicrm.server +"/civicrm/contact/view?reset=1&cid="+ contact.id;
+    switch (settings.civicrm.cms) {
+      case 'Joomla':
+        contactUrl = settings.civicrm.server +"/administrator/?option=com_civicrm&task=civicrm/contact/view&reset=1&cid="+ contact.id;
+        break;
+      case 'WordPress':
+        contactUrl = settings.civicrm.server +"/wp-admin/admin.php?page=CiviCRM&q=civicrm/contact/view&reset=1&cid="+ contact.id;
+        break;
+      // already done for Drupal
+    }
+
     var r= {'objectClass':["top","inetOrgPerson","person"],'cn':contact.sort_name,'homeurl':contactUrl};
     for (v in map){
       if (typeof contact[map[v]] != "undefined") {
