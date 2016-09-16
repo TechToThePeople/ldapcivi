@@ -37,11 +37,11 @@ server.bind(settings.ldap.basedn, function (req, res, next) {
 });
 
 //http://ldapjs.org/server.html authorize()
-server.search("", function(req, res, next) { 
+server.search("", function(req, res, next) {
   console.log(req.connection.ldap.bindDN.toString());
 //  if (!req.connection.ldap.bindDN.equals('cn=root'))
 //    return next(new ldap.InsufficientAccessRightsError());
-  return next(new ldap.OperationsError()); 
+  return next(new ldap.OperationsError());
   res.end();
 });
 
@@ -51,7 +51,7 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
 
   var params = {
     contact_type:'Individual',
-    "return":'display_name,sort_name,email,title,organization_name,job_title',
+    "return":'display_name,sort_name,first_name,last_name,email,title,organization_name,current_employer,job_title,phone,street_address,supplemental_address_1,city,state_province,postal_code,country',
     "option.limit" : req.sizeLimit,
   };
 
@@ -90,33 +90,44 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
     var map = {
       'mail':'email',
       'givenname':'first_name',
-      'mail':'email',
       'sn':'last_name',
       'title':'job_title',
       'co':'country',
       'l':'city',
       'st':'state_province',
-      'homepostaladdress':'street_address',
+      'street':'street_address',
       'postaladdress':'street_address',
       'postalcode':'postal_code',
       'telephonenumber':'phone',
-      'o':'organization_name',
+      'o':'current_employer',
       'company':'current_employer',
       'displayName':'display_name',
     }
-    var r= {'objectClass':["top","inetOrgPerson","person"],'cn':contact.sort_name,'homeurl':settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id};
+
+    var contactUrl = settings.civicrm.server +"/civicrm/contact/view?reset=1&cid="+ contact.id;
+    switch (settings.civicrm.cms) {
+      case 'Joomla':
+        contactUrl = settings.civicrm.server +"/administrator/?option=com_civicrm&task=civicrm/contact/view&reset=1&cid="+ contact.id;
+        break;
+      case 'WordPress':
+        contactUrl = settings.civicrm.server +"/wp-admin/admin.php?page=CiviCRM&q=civicrm/contact/view&reset=1&cid="+ contact.id;
+        break;
+      // already done for Drupal
+    }
+
+    var r= {'objectClass':["top","inetOrgPerson","person"],'cn':contact.sort_name,'homeurl':contactUrl};
     for (v in map){
       if (typeof contact[map[v]] != "undefined") {
         r[v] = contact[map[v]];
       }
     }
-    if (typeof contact["supplemental_address_1"] != "undefined") {
-      r['postaladdress']=r['postaladdress']+"\\n"+contact["supplemental_address_1"];
+    if (typeof contact["supplemental_address_1"] != "undefined" && contact["supplemental_address_1"].length > 0) {
+      r['postaladdress']=r['postaladdress']+", "+contact["supplemental_address_1"];
     }
-    if (typeof contact["supplemental_address_2"] != "undefined") {
-      r['postaladdress']=r['postaladdress']+"\\n"+contact["supplemental_address_2"];
+    if (typeof contact["supplemental_address_2"] != "undefined" && contact["supplemental_address_2"].length > 0) {
+      r['postaladdress']=r['postaladdress']+", "+contact["supplemental_address_2"];
     }
-    r['info']="Contact civicrm\\n"+settings.civicrm.server +"/civicrm/contact/view?cid="+ contact.id; 
+    r['info']='CiviCRM contact record: ' + contactUrl;
     return {'dn':'cn=civi_'+contact.id+', '+settings.ldap.basedn,'attributes':r};
   }
 
@@ -126,7 +137,7 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
 
   if (query.type == "PresenceMatch") {
     //do something
-    var cid=req.dn.rdns[0].cn.substring(5);
+    var cid=req.dn.rdns[0].attrs.cn.value.substring(5);
     crmAPI.call ('contact','get',{id:cid,"option.limit":1,return:"first_name,last_name,email,current_employer,prefix_id,gender_id,street_address,supplemental_address_1,supplemental_address_2,city,postal_code,state_province,country,phone,job_title"},
       function (data) {
         if (data.is_error) {
@@ -164,7 +175,7 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
     address=address.substring(1);
   }
 
-  console.log (req.filter.toString() +"-> searching "+query.type+ " for "  + address); 
+  console.log (req.filter.toString() +"-> searching "+query.type+ " for "  + address);
 
   civicrm_contact_search (address,function (error,contacts) {
     if (error) {
@@ -194,4 +205,3 @@ server.search(settings.ldap.SUFFIX, function(req, res, next) {
 server.listen(settings.ldap.port, function() {
   console.log('LDAP server listening at %s', server.url);
 });
-
